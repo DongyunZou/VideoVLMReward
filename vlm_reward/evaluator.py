@@ -180,53 +180,75 @@ class Evaluator:
 
     def prepare_batch(self, videos: list[str | torch.Tensor], prompts: list[str]):
         """
-        Prepare batch for inference.
-        videos: List of file paths (str) OR List of Tensors (T, C, H, W).
+        Robust batch preparation that handles variable video lengths/resolutions.
+        It processes samples individually and manually collates them.
         """
-        video_inputs = []
-        messages_batch = []
-
+        features_list = []
+        
+        # 1. Process each sample individually
         for video_item, prompt in zip(videos, prompts):
-            # 1. Load and Pre-process Video (Resize only)
+            # Load & Resize Video (Custom Logic)
             if isinstance(video_item, str):
-                # Path -> Read -> Sample -> Resize
                 video_tensor = load_video_torchvision(video_item, fps=self.cfg.fps, max_pixels=self.cfg.max_frame_pixels)
             elif isinstance(video_item, torch.Tensor):
-                # Tensor -> Resize
                 video_tensor = process_video_tensor(video_item, max_pixels=self.cfg.max_frame_pixels)
             else:
                 raise ValueError("Input video must be path (str) or Tensor.")
             
-            video_inputs.append(video_tensor)
-
-            # 2. Build Chat Message
-            # Note: We pass the raw resized tensor later, so here we just use the placeholder logic
-            # Qwen2-VL Processor expects the 'video' field in content if we rely on its internal fetcher,
-            # but since we processed it manually, we will pass `videos` argument to processor call.
+            # Build Message
             messages = [
                 {
                     "role": "user",
                     "content": [
-                        {"type": "video", "min_pixels": 1, "max_pixels": self.cfg.max_frame_pixels}, # Placeholder config
+                        {"type": "video", "min_pixels": 1, "max_pixels": self.cfg.max_frame_pixels}, 
                         {"type": "text", "text": build_prompt(prompt, self.cfg.eval_dim, self.cfg.prompt_template_type)},
                     ],
                 }
             ]
-            messages_batch.append(messages)
+            
+            text_inputs = self.processor.apply_chat_template([messages], tokenize=False, add_generation_prompt=True)
+            
+            # Call processor for SINGLE sample
+            # This generates the correct pixel_values and grid_thw for this specific video
+            single_feature = self.processor(
+                text=text_inputs,
+                videos=[video_tensor], # Wrap in list
+                padding=False,
+                return_tensors="pt", # Return tensors so we can manipulate them
+            )
+            features_list.append(single_feature)
 
-        # 3. Apply Template & Tokenize
-        text_inputs = self.processor.apply_chat_template(messages_batch, tokenize=False, add_generation_prompt=True)
+        # 2. Manual Collation (The Fix for 'stack expects equal size')
+        # We manually concat vision features and pad text features.
         
-        # 4. Processor Call
-        # Key: We pass our manually processed 'video_inputs' (list of Tensors) to the 'videos' argument.
-        batch = self.processor(
-            text=text_inputs,
-            videos=video_inputs, # List of (T, C, H, W) float tensors
+        batch = {}
+        
+        # A. Vision: Concatenate inputs (Qwen2-VL style)
+        if "pixel_values_videos" in features_list[0]:
+            batch["pixel_values_videos"] = torch.cat([f["pixel_values_videos"] for f in features_list], dim=0)
+            batch["video_grid_thw"] = torch.cat([f["video_grid_thw"] for f in features_list], dim=0)
+        
+        if "pixel_values" in features_list[0]: # If there are images mixed in (unlikely here but good for robustness)
+            batch["pixel_values"] = torch.cat([f["pixel_values"] for f in features_list], dim=0)
+            batch["image_grid_thw"] = torch.cat([f["image_grid_thw"] for f in features_list], dim=0)
+
+        # B. Text: Pad input_ids and attention_mask (Left Padding)
+        input_ids_list = [f["input_ids"][0] for f in features_list] # [0] to remove batch dim of 1
+        
+        # Tokenizer pad logic usually handles Right padding by default unless configured.
+        # Since we set processor.tokenizer.padding_side = 'left', we can use tokenizer.pad helper
+        # BUT tokenizer.pad expects dicts. Simplest is manual padding or using tokenizer.pad on list.
+        
+        # Let's use the tokenizer's built-in pad which respects padding_side
+        text_batch = self.processor.tokenizer.pad(
+            {"input_ids": input_ids_list},
             padding=True,
-            return_tensors="pt",
+            return_tensors="pt"
         )
-        
-        return batch.to(self.device)
+        batch["input_ids"] = text_batch["input_ids"]
+        batch["attention_mask"] = text_batch["attention_mask"]
+
+        return {k: v.to(self.device) for k, v in batch.items()}
 
     def reward(self, videos: list[str | torch.Tensor], prompts: list[str], use_norm=True):
         batch = self.prepare_batch(videos, prompts)
