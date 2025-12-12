@@ -233,7 +233,7 @@ class Evaluator:
         
         with torch.no_grad():
             outputs = self.model(**batch)
-            logits = outputs.logits # Shape: (B, 3, 1) usually or (B, 3) depends on model def
+            logits = outputs["logits"] # Shape: (B, 3, 1) usually or (B, 3) depends on model def
             
             # Squeeze output dim if necessary
             if logits.dim() == 3 and logits.shape[-1] == 1:
