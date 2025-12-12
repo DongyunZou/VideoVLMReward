@@ -1,5 +1,6 @@
 import os
 import math
+import ipdb.stdout
 import torch
 import torchvision
 from torchvision import io
@@ -252,7 +253,7 @@ class Evaluator:
 
     def reward(self, videos: list[str | torch.Tensor], prompts: list[str], use_norm=True):
         batch = self.prepare_batch(videos, prompts)
-        
+        import ipdb; ipdb.set_trace()
         with torch.no_grad():
             outputs = self.model(**batch)
             logits = outputs["logits"] # Shape: (B, 3, 1) usually or (B, 3) depends on model def

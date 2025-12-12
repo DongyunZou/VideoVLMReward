@@ -52,7 +52,7 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
 
             if attention_mask is not None:
                 attention_mask = attention_mask.to(inputs_embeds.device)
-
+        import ipdb; ipdb.set_trace()
         outputs = self.model(
             input_ids=None,
             position_ids=position_ids,
@@ -64,9 +64,8 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        
+        import ipdb; ipdb.set_trace()
         hidden_states = outputs[0]  # [B, L, D]
-
         logits = self.rm_head(hidden_states)    # [B, L, N]
         
         if input_ids is not None:
