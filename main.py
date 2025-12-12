@@ -48,7 +48,7 @@ def main():
     )
     model.resize_token_embeddings(len(processor.tokenizer)) 
     model.load_state_dict(torch.load(cfg.pretrained_path))
-    model.eval()
+    model.cuda().eval()
 
 if __name__ == "__main__":
     main()
