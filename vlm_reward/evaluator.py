@@ -156,7 +156,7 @@ class Evaluator:
             cfg.model_name_or_path,
             output_dim=cfg.output_dim,
             special_token_ids=special_token_ids,
-            attn_implementation="flash_attention_2",
+            attn_implementation="sdpa",
             revision=cfg.model_revision,
             torch_dtype=torch.bfloat16,
         )
