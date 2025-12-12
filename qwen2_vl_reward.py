@@ -7,7 +7,7 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
     def __init__(self, cfg, output_dim, special_token_ids):
         super().__init__(cfg)
         self.output_dim = output_dim
-        self.rm_head = nn.Linear(cfg.hidden_size, output_dim)
+        self.rm_head = nn.Linear(cfg.hidden_size, output_dim, bias=False)
         self.special_token_ids = special_token_ids
     
     def forward(
