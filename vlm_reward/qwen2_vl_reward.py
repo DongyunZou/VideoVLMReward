@@ -34,7 +34,6 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        # pdb.set_trace()
         if inputs_embeds is None:
             inputs_embeds = self.model.get_input_embeddings()(input_ids)
             if pixel_values is not None:
@@ -96,8 +95,6 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             special_token_mask = special_token_mask | (input_ids == special_token_id)
         pooled_logits = logits[special_token_mask, ...]
         pooled_logits = pooled_logits.view(batch_size, 3, -1)   # [B, 3, N] assert 3 attributes
-        if self.output_dim == 3:
-            pooled_logits = pooled_logits.diagonal(dim1=1, dim2=2)
         pooled_logits = pooled_logits.view(batch_size, -1)
         
         return {"logits": pooled_logits}
