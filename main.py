@@ -44,6 +44,7 @@ def main():
         special_token_ids=special_token_ids,
         attn_implementation="flash_attention_2",
         revision=cfg.model_revision,
+        torch_dtype=torch.bfloat16,
     )
     model.resize_token_embeddings(len(processor.tokenizer)) 
     model.load_state_dict(torch.load(cfg.pretrained_path))
