@@ -45,6 +45,7 @@ def main():
         attn_implementation="flash_attention_2",
         revision=cfg.model_revision,
     )
+    model.resize_token_embeddings(len(processor.tokenizer)) 
     model.load_state_dict(torch.load(cfg.pretrained_path))
     model.eval()
 
