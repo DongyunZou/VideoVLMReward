@@ -168,6 +168,15 @@ class Evaluator:
             self.model.load_state_dict(state_dict, strict=True)
         else:
             print(f"Warning: Checkpoint {cfg.pretrained_path} not found. Using random weights for debug.")
+        
+        # original deep seed trainer convert the freq into bf16
+        rope_module = self.model.visual.rotary_pos_emb
+        rope_module.inv_freq = rope_module.inv_freq.to(torch.bfloat16)
+        if hasattr(rope_module, "_cos_cached"):
+            rope_module._cos_cached = None
+            rope_module._sin_cached = None
+        if hasattr(rope_module, "seq_len_cached"):
+            rope_module.seq_len_cached = None
 
         self.model.to(self.device).eval()
 
