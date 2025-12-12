@@ -168,27 +168,8 @@ class Evaluator:
             self.model.load_state_dict(state_dict, strict=True)
         else:
             print(f"Warning: Checkpoint {cfg.pretrained_path} not found. Using random weights for debug.")
-        
-        # original deep seed trainer convert the freq into bf16
-        rope_module = self.model.visual.rotary_pos_emb
-        rope_module.inv_freq = rope_module.inv_freq.to(torch.bfloat16)
-        if hasattr(rope_module, "_cos_cached"):
-            rope_module._cos_cached = None
-            rope_module._sin_cached = None
-        if hasattr(rope_module, "seq_len_cached"):
-            rope_module.seq_len_cached = None
-        
-        for _, layer in enumerate(self.model.model.language_model.layers):
-            rope_module = layer.self_attn.rotary_emb
-            if rope_module.inv_freq.dtype != torch.bfloat16:
-                rope_module.inv_freq = rope_module.inv_freq.to(torch.bfloat16)
-            if hasattr(rope_module, "_cos_cached"):
-                rope_module._cos_cached = None
-                rope_module._sin_cached = None
-            if hasattr(rope_module, "seq_len_cached"):
-                rope_module.seq_len_cached = None
 
-        self.model.to(self.device).eval()
+        self.model.to(device=self.device, dtype=torch.bfloat16).eval()
 
     def _normalize_reward(self, reward_dict):
         """Standardize rewards using stats from config."""
