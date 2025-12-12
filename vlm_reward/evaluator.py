@@ -145,7 +145,7 @@ class Evaluator:
         print(f"Loading processor from {cfg.model_name_or_path}...")
         self.processor = AutoProcessor.from_pretrained(
             cfg.model_name_or_path,
-            padding_side="right",
+            padding_side="left",
         )
         self.processor.tokenizer.add_special_tokens({"additional_special_tokens": cfg.special_tokens})
         special_token_ids = self.processor.tokenizer.convert_tokens_to_ids(cfg.special_tokens)

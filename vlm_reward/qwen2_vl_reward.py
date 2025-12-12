@@ -74,27 +74,23 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
         else:
             batch_size = inputs_embeds.shape[0]
 
-        ## get sequence length
-        if self.config.pad_token_id is None and batch_size != 1:
-            raise ValueError("Cannot handle batch sizes > 1 if no padding token is defined.")
-        if self.config.pad_token_id is None:
-            sequence_lengths = -1
-        else:
-            if input_ids is not None:
-                # if no pad token found, use modulo instead of reverse indexing for ONNX compatibility
-                sequence_lengths = torch.eq(input_ids, self.config.pad_token_id).int().argmax(-1) - 1
-                sequence_lengths = sequence_lengths % input_ids.shape[-1]
-                sequence_lengths = sequence_lengths.to(logits.device)
-            else:
-                sequence_lengths = -1
-
         # special_token_ids = self.tokenizer.convert_tokens_to_ids(self.special_tokens)
         # create a mask for special tokens
         special_token_mask = torch.zeros_like(input_ids, dtype=torch.bool)
         for special_token_id in self.special_token_ids:
             special_token_mask = special_token_mask | (input_ids == special_token_id)
+            
         pooled_logits = logits[special_token_mask, ...]
-        pooled_logits = pooled_logits.view(batch_size, 3, -1)   # [B, 3, N] assert 3 attributes
+        
+        # 安全检查：防止截断导致 Token 数量不对，view 报错不好排查
+        expected_tokens = batch_size * 3 # 假设每条数据有 3 个 reward token
+        if pooled_logits.shape[0] != expected_tokens:
+            raise ValueError(
+                f"Expected {expected_tokens} special tokens in batch, but found {pooled_logits.shape[0]}. "
+                "Check if max_length is too short causing truncation."
+            )
+
+        pooled_logits = pooled_logits.view(batch_size, 3, -1)
         pooled_logits = pooled_logits.view(batch_size, -1)
         
         return {"logits": pooled_logits}
