@@ -98,7 +98,7 @@ Please evaluate the {dimension_name} of a generated video. Consider {dimension_d
 """
 
 def build_prompt(prompt, dimension, template_type):
-    if isinstance(dimension, list) and len(dimension) > 1:
+    if isinstance(dimension, list, tuple) and len(dimension) > 1:
         dimension_name = ", ".join([DIMENSION_DESCRIPTIONS[d][0] for d in dimension])
         dimension_name = f'overall performance({dimension_name})'
         dimension_description = "the overall performance of the video"
