@@ -265,19 +265,6 @@ def debug():
         os.path.join(base_dir, "datasets/train/videos/example_1_B.mp4"),
         os.path.join(base_dir, "datasets/train/videos/example_2_A.mp4")
     ]
-    
-    # Example: Mix of Path and Tensor inputs
-    # Let's manually load the second video to test Tensor input support
-    if os.path.exists(video_paths[1]):
-        print("Testing Tensor input with second video...")
-        # Simulating a user passing a tensor (already sampled/loaded)
-        v_raw, _, _ = io.read_video(video_paths[1], output_format="TCHW")
-        # Just simple slice to simulate sampling
-        v_tensor = v_raw[::15] 
-        inputs = [video_paths[0], v_tensor]
-    else:
-        print("Video files not found, please check paths.")
-        return
 
     prompts = [
         "The camera remains still, a girl with braided hair and wearing a pink dress approached the chair in the room and sat on it, the background is a cozy bedroom, warm indoor lighting.",
@@ -293,7 +280,7 @@ def debug():
 
     evaluator = Evaluator(cfg)
     
-    rewards = evaluator.reward(inputs, prompts)
+    rewards = evaluator.reward(video_paths, prompts)
     
     for i, r in enumerate(rewards):
         print(f"Video {i}: {r}")
