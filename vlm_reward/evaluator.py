@@ -177,6 +177,16 @@ class Evaluator:
             rope_module._sin_cached = None
         if hasattr(rope_module, "seq_len_cached"):
             rope_module.seq_len_cached = None
+        
+        for _, layer in enumerate(self.model.model.language_model.layers):
+            rope_module = layer.self_attn.rotary_emb
+            if rope_module.inv_freq.dtype != torch.bfloat16:
+                rope_module.inv_freq = rope_module.inv_freq.to(torch.bfloat16)
+            if hasattr(rope_module, "_cos_cached"):
+                rope_module._cos_cached = None
+                rope_module._sin_cached = None
+            if hasattr(rope_module, "seq_len_cached"):
+                rope_module.seq_len_cached = None
 
         self.model.to(self.device).eval()
 
