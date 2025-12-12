@@ -263,13 +263,13 @@ def debug():
     video_paths = [
         os.path.join(base_dir, "datasets/train/videos/example_1_A.mp4"),
         os.path.join(base_dir, "datasets/train/videos/example_1_B.mp4"),
-        os.path.join(base_dir, "datasets/train/videos/example_2_A.mp4")
+        # os.path.join(base_dir, "datasets/train/videos/example_2_A.mp4")
     ]
 
     prompts = [
         "The camera remains still, a girl with braided hair and wearing a pink dress approached the chair in the room and sat on it, the background is a cozy bedroom, warm indoor lighting.",
         "The camera remains still, a girl with braided hair and wearing a pink dress approached the chair in the room and sat on it, the background is a cozy bedroom, warm indoor lighting.",
-        "The camera follows a young explorer through an abandoned urban building at night, exploring hidden corridors and forgotten spaces, with a mix of light and shadow creating a mysterious atmosphere.",
+        # "The camera follows a young explorer through an abandoned urban building at night, exploring hidden corridors and forgotten spaces, with a mix of light and shadow creating a mysterious atmosphere.",
     ]
 
     cfg = EvaluatorConfig(pretrained_path="assets/reward_model.pt") # Ensure path exists
