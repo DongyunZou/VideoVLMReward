@@ -165,7 +165,7 @@ class Evaluator:
         # Load weights
         if os.path.exists(cfg.pretrained_path):
             state_dict = torch.load(cfg.pretrained_path, map_location="cpu")
-            self.model.load_state_dict(state_dict, strict=False)
+            self.model.load_state_dict(state_dict, strict=True)
         else:
             print(f"Warning: Checkpoint {cfg.pretrained_path} not found. Using random weights for debug.")
 
