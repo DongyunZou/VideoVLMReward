@@ -181,14 +181,12 @@ class Evaluator:
 
     def prepare_batch(self, videos: list[str | torch.Tensor], prompts: list[str]):
         """
-        Robust batch preparation that handles variable video lengths/resolutions.
-        It processes samples individually and manually collates them.
+        Correctly uses the processor to handle padding and mRoPE alignment.
         """
-        features_list = []
-        
-        # 1. Process each sample individually
+        text_inputs_list = []
+        video_inputs_list = []
+
         for video_item, prompt in zip(videos, prompts):
-            # Load & Resize Video (Custom Logic)
             if isinstance(video_item, str):
                 video_tensor = load_video_torchvision(video_item, fps=self.cfg.fps, max_pixels=self.cfg.max_frame_pixels)
             elif isinstance(video_item, torch.Tensor):
@@ -196,7 +194,8 @@ class Evaluator:
             else:
                 raise ValueError("Input video must be path (str) or Tensor.")
             
-            # Build Message
+            video_inputs_list.append(video_tensor)
+
             messages = [
                 {
                     "role": "user",
@@ -206,48 +205,16 @@ class Evaluator:
                     ],
                 }
             ]
-            
-            text_inputs = self.processor.apply_chat_template([messages], tokenize=False, add_generation_prompt=True)
-            
-            # Call processor for SINGLE sample
-            # This generates the correct pixel_values and grid_thw for this specific video
-            single_feature = self.processor(
-                text=text_inputs,
-                videos=[video_tensor], # Wrap in list
-                padding=False,
-                return_tensors="pt", # Return tensors so we can manipulate them
-            )
-            features_list.append(single_feature)
+            text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            text_inputs_list.append(text)
 
-        # 2. Manual Collation (The Fix for 'stack expects equal size')
-        # We manually concat vision features and pad text features.
-        
-        batch = {}
-        
-        # A. Vision: Concatenate inputs (Qwen2-VL style)
-        if "pixel_values_videos" in features_list[0]:
-            batch["pixel_values_videos"] = torch.cat([f["pixel_values_videos"] for f in features_list], dim=0)
-            batch["video_grid_thw"] = torch.cat([f["video_grid_thw"] for f in features_list], dim=0)
-        
-        if "pixel_values" in features_list[0]: # If there are images mixed in (unlikely here but good for robustness)
-            batch["pixel_values"] = torch.cat([f["pixel_values"] for f in features_list], dim=0)
-            batch["image_grid_thw"] = torch.cat([f["image_grid_thw"] for f in features_list], dim=0)
-
-        # B. Text: Pad input_ids and attention_mask (Left Padding)
-        input_ids_list = [f["input_ids"][0] for f in features_list] # [0] to remove batch dim of 1
-        
-        # Tokenizer pad logic usually handles Right padding by default unless configured.
-        # Since we set processor.tokenizer.padding_side = 'left', we can use tokenizer.pad helper
-        # BUT tokenizer.pad expects dicts. Simplest is manual padding or using tokenizer.pad on list.
-        
-        # Let's use the tokenizer's built-in pad which respects padding_side
-        text_batch = self.processor.tokenizer.pad(
-            {"input_ids": input_ids_list},
+        batch = self.processor(
+            text=text_inputs_list,
+            videos=video_inputs_list,
             padding=True,
-            return_tensors="pt"
+            return_tensors="pt",
+            videos_kwargs={"do_rescale": True} 
         )
-        batch["input_ids"] = text_batch["input_ids"]
-        batch["attention_mask"] = text_batch["attention_mask"]
 
         return {k: v.to(self.device) for k, v in batch.items()}
 
