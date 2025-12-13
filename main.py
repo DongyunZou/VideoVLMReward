@@ -9,8 +9,8 @@ def main():
     evaluator = Evaluator(cfg)
 
     video_paths = [
-        "~/workspace/code/video-reward/datasets/train/videos/example_1_A.mp4",
-        "~/workspace/code/video-reward/datasets/train/videos/example_1_B.mp4",
+        "examples/example_1_A.mp4",
+        "examples/example_1_B.mp4",
     ]
 
     prompts = [
