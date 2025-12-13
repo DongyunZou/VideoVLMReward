@@ -9,10 +9,6 @@ from transformers import AutoProcessor
 from vlm_reward.qwen2_vl_reward import Qwen2VLRewardModel
 from vlm_reward.prompt_template import build_prompt
 
-# -----------------------------------------------------------------------------
-# 1. Simplest Pre-process Utils (Extracted & Simplified)
-# -----------------------------------------------------------------------------
-
 IMAGE_FACTOR = 28
 MIN_PIXELS = 4 * 28 * 28
 MAX_PIXELS = 16384 * 28 * 28
@@ -239,42 +235,3 @@ class Evaluator:
             results.append(r)
             
         return results
-
-# -----------------------------------------------------------------------------
-# 3. Debug / Main
-# -----------------------------------------------------------------------------
-
-def debug():
-    # Update paths to your local environment
-    base_dir = os.path.expanduser("~/workspace/code/video-reward")
-    video_paths = [
-        os.path.join(base_dir, "datasets/train/videos/example_1_A.mp4"),
-        os.path.join(base_dir, "datasets/train/videos/example_1_B.mp4"),
-        os.path.join(base_dir, "datasets/train/videos/example_2_A.mp4")
-    ]
-
-    prompts = [
-        "The camera remains still, a girl with braided hair and wearing a pink dress approached the chair in the room and sat on it, the background is a cozy bedroom, warm indoor lighting.",
-        "The camera remains still, a girl with braided hair and wearing a pink dress approached the chair in the room and sat on it, the background is a cozy bedroom, warm indoor lighting.",
-        "The camera follows a young explorer through an abandoned urban building at night, exploring hidden corridors and forgotten spaces, with a mix of light and shadow creating a mysterious atmosphere.",
-    ]
-
-    cfg = EvaluatorConfig(pretrained_path="assets/reward_model.pt") # Ensure path exists
-    
-    # Check if model path is valid (for running without errors if weight missing)
-    if not os.path.exists(cfg.pretrained_path):
-        print(f"Note: {cfg.pretrained_path} not found. Model initialized with random weights.")
-
-    evaluator = Evaluator(cfg)
-    
-    rewards = evaluator.reward(video_paths, prompts)
-    
-    for i, r in enumerate(rewards):
-        print(f"Video {i}: {r}")
-
-if __name__ == "__main__":
-    debug()
-
-"""
-python -m vlm_reward.evaluator
-"""
