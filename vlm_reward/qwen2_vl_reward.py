@@ -34,7 +34,7 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        import ipdb; ipdb.set_trace()
+
         if inputs_embeds is None:
             inputs_embeds = self.model.get_input_embeddings()(input_ids)
             if pixel_values is not None:
@@ -53,7 +53,7 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
 
             if attention_mask is not None:
                 attention_mask = attention_mask.to(inputs_embeds.device)
-        import ipdb; ipdb.set_trace()
+
         outputs = self.model(
             input_ids=None,
             position_ids=position_ids,
@@ -65,7 +65,6 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        import ipdb; ipdb.set_trace()
         hidden_states = outputs[0]  # [B, L, D]
         logits = self.rm_head(hidden_states)    # [B, L, N]
         
@@ -81,15 +80,6 @@ class Qwen2VLRewardModel(Qwen2VLForConditionalGeneration):
             special_token_mask = special_token_mask | (input_ids == special_token_id)
             
         pooled_logits = logits[special_token_mask, ...]
-        
-        # 安全检查：防止截断导致 Token 数量不对，view 报错不好排查
-        expected_tokens = batch_size * 3 # 假设每条数据有 3 个 reward token
-        if pooled_logits.shape[0] != expected_tokens:
-            raise ValueError(
-                f"Expected {expected_tokens} special tokens in batch, but found {pooled_logits.shape[0]}. "
-                "Check if max_length is too short causing truncation."
-            )
-
         pooled_logits = pooled_logits.view(batch_size, 3, -1)
         pooled_logits = pooled_logits.view(batch_size, -1)
         
